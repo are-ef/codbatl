@@ -1,9 +1,12 @@
 /* General Styles */
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: courier-bold;
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    text-align: center;
+    font-size: 15px;
+
 }
 
 .container {
