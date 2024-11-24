@@ -14,6 +14,7 @@
             <li><a href="match-finder.html">Match Finder</a></li>
             <li><a href="team.html">Team</a></li>
             <li><a href="profile.html">Profile</a></li>
+            <li><a href="recent-matches.html">Recent Matches</a></li>
         </ul>
     </nav>
 </header>
@@ -91,14 +92,26 @@
             return;
         }
 
+        const matchType = document.getElementById("matchType").value;
         const searchDestroy = document.getElementById("search-destroy").checked;
         const hardpoint = document.getElementById("hardpoint").checked;
         const control = document.getElementById("control").checked;
         const bestOf1 = document.getElementById("best-of-1").checked;
         const bestOf3 = document.getElementById("best-of-3").checked;
 
+        // Validate game mode selection
         if (!bestOf1 && !bestOf3) {
             alert("Please select Best of 1 or Best of 3.");
+            return;
+        }
+
+        if (bestOf1 && (searchDestroy + hardpoint + control) !== 1) {
+            alert("When 'Best of 1' is selected, you must choose exactly one game mode.");
+            return;
+        }
+
+        if (!bestOf3 && (searchDestroy + hardpoint + control) !== 1) {
+            alert("When 'Best of 3' is selected, you must choose exactly one game mode or none atall.");
             return;
         }
 
@@ -106,13 +119,21 @@
         const users = JSON.parse(localStorage.getItem("users")) || [];
         const user = users.find(u => u.codUsername === currentUser);
 
+        // Allow 'Best of 3' with or without specific game modes
         const selectedGameModes = [];
         if (searchDestroy) selectedGameModes.push("Search & Destroy");
         if (hardpoint) selectedGameModes.push("Hardpoint");
         if (control) selectedGameModes.push("Control");
 
+
         const gameModeCount = bestOf1 ? 1 : 3;
         const mapsCount = bestOf1 ? 1 : 3;
+
+        // Adding ! infront of select removes ability to select bo3 and get random 3 maps, > 1 to length solved.
+        if (selectedGameModes.length > 1) {
+            alert("Please select at least one game mode.");
+            return;
+        }
 
         const newMatch = {
             matchType: matchType,  // select: 1v1, 2v2, 3v3, 4v4, 5v5
@@ -162,6 +183,8 @@
             const cdlRules = match.cdlRules ? "Yes" : "No";
             const acceptedBy = match.acceptedBy || null;
             const acceptedByLeader = match.acceptedByLeader || null;
+            const gameType = match.matchType || [];
+
 
             // Safe check for reportedOutcome as well
             const reportedOutcome = match.reportedOutcome || { postedBy: null, acceptedBy: null };
@@ -170,10 +193,17 @@
                 <p><strong>Match Type:</strong> ${match.matchType}</p>  <!-- Display Match Type -->
                 <p><strong>Game Modes:</strong> ${match.gameModes.join(", ")}</p>
                 <p><strong>Match Format:</strong> ${match.matchFormat}</p>
-                <p><strong>Posted By:</strong> ${match.postedBy} (Leader: ${match.leader})</p>
-                <p><strong>Maps:</strong> ${match.maps.join(", ")}</p>
                 <p><strong>CDL Rules:</strong> ${match.cdlRules ? "Yes" : "No"}</p>
             `;
+
+            // If accepted
+            if (match.acceptedBy) {
+                matchDiv.innerHTML += `
+                <p><strong>Posted By:</strong> ${match.postedBy} (Leader: ${match.leader})</p>
+                <p><strong>Maps:</strong> ${match.maps.join(", ")}</p>
+            `;
+            }
+
 
             // Team members
 
@@ -229,9 +259,12 @@
     }
 
     function getTeamMembers(teamName) {
-        const users = JSON.parse(localStorage.getItem("users")) || [];
-        const teamMembers = users.filter(user => user.team && user.team.name === teamName);
-        return teamMembers.map(member => member.codUsername).join(", ");
+        const users = JSON.parse(localStorage.getItem("users")) || []; // Ensure users are loaded from localStorage
+        const team = users.find(user => user.team?.name === teamName); // Find the team by its name
+
+        return team && team.team.players.length > 0
+            ? team.team.players.join(", ") // Return the players in the team
+            : "No team found or no players in the team."; // Handle the case where no players are in the team
     }
 
     function acceptMatch(index) {
