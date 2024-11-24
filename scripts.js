@@ -1,16 +1,47 @@
-// Ensure matches is declared once
-const users = JSON.parse(localStorage.getItem("users")) || [];
-const currentUser = localStorage.getItem("currentUser") || null;
-let matches = JSON.parse(localStorage.getItem("matches")) || [];
+// Function to ensure the user is logged in
+function ensureLoggedIn() {
+    const currentUser = localStorage.getItem("currentUser");
+    if (!currentUser) {
+        alert("You must be signed in to access this page.");
+        window.location.href = "index.html"; // Redirect to sign-in page
+    }
+}
+
+// Function to load user profile data
+function loadProfile() {
+    const currentUser = localStorage.getItem("currentUser");
+    const users = JSON.parse(localStorage.getItem("users")) || [];
+    const user = users.find(u => u.codUsername === currentUser);
+
+    if (!currentUser) {
+        alert("You must be signed in to view this page.");
+        window.location.href = "index.html"; // Redirect to sign-in page
+        return;
+    }
+
+    let matches = JSON.parse(localStorage.getItem("matches")) || [];
+
+    // Populate profile form with user data
+    document.getElementById("bio").value = user.bio || "";
+    if (user.avatar) {
+        document.getElementById("avatar-preview").innerHTML = `
+            <img src="${user.avatar}" alt="Avatar" style="max-width: 200px; max-height: 200px; border-radius: 50%;">
+        `;
+    }
+}
 
 // Function to handle user authentication (Sign In)
 function handleAuth(event) {
     event.preventDefault();
+
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();
 
-    // Validate user credentials
+    const users = JSON.parse(localStorage.getItem("users")) || [];
+
     const user = users.find(u => u.codUsername === username && u.password === password);
+
+    // Validate user credentials
     if (user) {
         localStorage.setItem("currentUser", username);
         alert("Sign-in successful!");
@@ -35,6 +66,7 @@ function handleSignUp(event) {
     }
 
     // Check if username already exists
+    const users = JSON.parse(localStorage.getItem("users")) || [];
     if (users.some(user => user.codUsername === newUsername)) {
         alert("Username already exists. Please choose a different username.");
         return;
@@ -49,34 +81,13 @@ function handleSignUp(event) {
     window.location.href = "index.html"; // Redirect to the sign-in page
 }
 
-// Function to ensure the user is logged in
-function ensureLoggedIn() {
-    if (!currentUser) {
-        alert("Please log in to access this page.");
-        window.location.href = "index.html"; // Redirect to the login page
-    }
-}
-
-// Function to load the user profile (bio, avatar)
-function loadProfile() {
-    if (currentUser) {
-        const user = users.find(u => u.codUsername === currentUser);
-        if (user) {
-            document.getElementById("bio").value = user.bio || ""; // Set the bio in the textarea
-            if (user.avatar) {
-                document.getElementById("avatar-preview").innerHTML = `<img src="${user.avatar}" alt="Avatar" style="max-width: 200px; max-height: 200px;">`;
-            }
-        }
-    }
-}
-
 // Function to update the user profile (bio, avatar)
 function updateProfile(event) {
-    event.preventDefault();
+    event.preventDefault(); // Prevent form submission
 
-    const bio = document.getElementById("bio").value.trim();
+    const bio = document.getElementById("bio").value;
     const avatarInput = document.getElementById("avatar");
-    let avatarUrl = null;
+    let avatarUrl = "";
 
     if (avatarInput.files && avatarInput.files[0]) {
         const reader = new FileReader();
@@ -92,6 +103,9 @@ function updateProfile(event) {
 
 // Helper function to update the user profile data in localStorage
 function updateUserProfile(bio, avatarUrl) {
+    const users = JSON.parse(localStorage.getItem("users")) || [];
+    const currentUser = localStorage.getItem("currentUser");
+
     const user = users.find(u => u.codUsername === currentUser);
     if (user) {
         user.bio = bio;
@@ -103,54 +117,50 @@ function updateUserProfile(bio, avatarUrl) {
     }
 }
 
-
 // Function to edit the team name or leader
 function editTeam() {
-    if (currentUser) {
-        const user = users.find(u => u.codUsername === currentUser);
+    const currentUser = localStorage.getItem("currentUser");
+    const users = JSON.parse(localStorage.getItem("users")) || [];
+    const user = users.find(u => u.codUsername === currentUser);
 
-        if (user && user.team) {
-            // Allow the user to edit the team name and leader
-            const newTeamName = prompt("Enter a new team name:", user.team.name);
-            if (newTeamName && newTeamName !== user.team.name) {
-                user.team.name = newTeamName;
-                alert("Team name updated!");
-            }
-
-            const newLeader = prompt("Enter a new team leader (username):", user.team.leader);
-            if (newLeader && newLeader !== user.team.leader) {
-                // Validate if the new leader is a valid user
-                const newLeaderUser = users.find(u => u.codUsername === newLeader);
-                if (newLeaderUser) {
-                    user.team.leader = newLeader;
-                    alert("Team leader updated!");
-                } else {
-                    alert("Invalid username for team leader.");
-                }
-            }
-
-            // Save the updated user data to localStorage
-            localStorage.setItem("users", JSON.stringify(users));
-
-            // Re-render the team
-            renderTeam();
-        } else {
-            alert("You are not part of a team.");
+    if (user && user.team) {
+        // Allow the user to edit the team name and leader
+        const newTeamName = prompt("Enter a new team name:", user.team.name);
+        if (newTeamName && newTeamName !== user.team.name) {
+            user.team.name = newTeamName;
+            alert("Team name updated!");
         }
+
+        const newLeader = prompt("Enter a new team leader (username):", user.team.leader);
+        if (newLeader && newLeader !== user.team.leader) {
+            // Validate if the new leader is a valid user
+            const newLeaderUser = users.find(u => u.codUsername === newLeader);
+            if (newLeaderUser) {
+                user.team.leader = newLeader;
+                alert("Team leader updated!");
+            } else {
+                alert("Invalid username for team leader.");
+            }
+        }
+
+        // Save the updated user data to localStorage
+        localStorage.setItem("users", JSON.stringify(users));
+
+        // Re-render the team
+        renderTeam();
+    } else {
+        alert("You are not part of a team.");
     }
 }
 
-
 // Function to render the team details
 function renderTeam() {
+    const currentUser = localStorage.getItem("currentUser");
+    const users = JSON.parse(localStorage.getItem("users")) || [];
     const teamDisplay = document.getElementById("team-display");
     const teamManagement = document.getElementById("team-management");
     const teamLeader = document.getElementById("team-leader");
     const teamPlayers = document.getElementById("team-players");
-
-    if (!teamDisplay || !teamManagement || !teamLeader || !teamPlayers) {
-        return; // Exit the function if elements are missing
-    }
 
     if (currentUser) {
         const user = users.find(u => u.codUsername === currentUser);
@@ -185,15 +195,16 @@ function renderTeam() {
 // Function to add a player to the team
 function addPlayerToTeam() {
     const newPlayerUsername = document.getElementById("new-player-username").value.trim();
+    const users = JSON.parse(localStorage.getItem("users")) || [];
 
     if (newPlayerUsername === "") {
         alert("Player username cannot be empty.");
         return;
     }
 
+    const currentUser = localStorage.getItem("currentUser");
     if (currentUser) {
         const userIndex = users.findIndex(u => u.codUsername === currentUser);
-
         if (userIndex > -1 && users[userIndex].team) {
             if (users[userIndex].team.players.includes(newPlayerUsername)) {
                 alert(`${newPlayerUsername} is already in the team!`);
@@ -211,9 +222,11 @@ function addPlayerToTeam() {
 
 // Function to remove a player from the team
 function removePlayerFromTeam(playerIndex) {
+    const currentUser = localStorage.getItem("currentUser");
+    const users = JSON.parse(localStorage.getItem("users")) || [];
+
     if (currentUser) {
         const userIndex = users.findIndex(u => u.codUsername === currentUser);
-
         if (userIndex > -1 && users[userIndex].team) {
             // Remove the player from the team
             const playerToRemove = users[userIndex].team.players[playerIndex];
@@ -229,6 +242,8 @@ function removePlayerFromTeam(playerIndex) {
 // Function to create a new team
 function createTeam() {
     const teamName = document.getElementById("team-name").value.trim();
+    const currentUser = localStorage.getItem("currentUser");
+    const users = JSON.parse(localStorage.getItem("users")) || [];
 
     if (teamName === "") {
         alert("Team name cannot be empty.");
@@ -239,84 +254,81 @@ function createTeam() {
         const userIndex = users.findIndex(u => u.codUsername === currentUser);
 
         if (userIndex > -1) {
-            if (users[userIndex].team) {
-                alert("You are already part of a team!");
+            const user = users[userIndex];
+
+            if (user.team) {
+                alert("You are already part of a team.");
                 return;
             }
 
-            users[userIndex].team = { name: teamName, leader: currentUser, players: [] };
+            // Create new team
+            user.team = {
+                name: teamName,
+                leader: currentUser,
+                players: [currentUser]
+            };
+
             localStorage.setItem("users", JSON.stringify(users));
 
             alert("Team created successfully!");
-            renderTeam();
+            renderTeam(); // Re-render the team after creation
         }
     }
 }
 
 // Function to post a match
 function postMatch() {
+    const user = users.find(u => u.codUsername === currentUser);
+
     if (!isTeamLeader()) {
         alert("Only team leaders can post matches.");
         return;
     }
 
-    const matchType = document.getElementById("matchType").value; // get selected value
+    const matchType = document.getElementById("matchType").value; // 1v1, 2v2, 3v3, 4v4, 5v5
     const searchDestroy = document.getElementById("search-destroy").checked;
     const hardpoint = document.getElementById("hardpoint").checked;
     const control = document.getElementById("control").checked;
     const bestOf1 = document.getElementById("best-of-1").checked;
     const bestOf3 = document.getElementById("best-of-3").checked;
 
+    const selectedGameModes = [];
+    if (searchDestroy) selectedGameModes.push("Search & Destroy");
+    if (hardpoint) selectedGameModes.push("Hardpoint");
+    if (control) selectedGameModes.push("Control");
 
-    if (bestOf1 && (searchDestroy + hardpoint + control) !== 1) {
-        alert("When 'Best of 1' is selected, you must choose exactly one game mode.");
-        return;
-    }
+    const selectedMatchFormat = bestOf1 ? "Best of 1" : "Best of 3";
+    const cdlRules = document.getElementById("cdl-rules").checked;
 
     if (!bestOf1 && !bestOf3) {
         alert("Please select Best of 1 or Best of 3.");
         return;
     }
 
-    // Log the match type for debugging
-    console.log("Match Type:", matchType);
-
-    const matchTypeElement = document.getElementById("matchType");
-    if (matchTypeElement) {
-        const matchType = matchTypeElement.value; // Directly use the matchType value
-        console.log("Match Type Selected:", document.getElementById('matchType').value); // 1v1, 2v2, 3v3, 4v4, 5v5
-    } else {
-        console.log("Match Type dropdown not found!");  // Debugging log
+    if (bestOf1 && selectedGameModes.length !== 1) {
+        alert("When 'Best of 1' is selected, you must choose exactly one game mode.");
+        return;
     }
 
-    const currentUser = localStorage.getItem("currentUser");
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-    const user = users.find(u => u.codUsername === currentUser);
-
-
-    const selectedGameModes = [];
-    if (searchDestroy) selectedGameModes.push("Search & Destroy");
-    if (hardpoint) selectedGameModes.push("Hardpoint");
-    if (control) selectedGameModes.push("Control");
-
-
-
-    const selectedMatchFormat = bestOf1 ? "Best of 1" : "Best of 3";
-    const cdlRules = document.getElementById("cdl-rules").checked;
+    if (bestOf3 && selectedGameModes.length > 1) {
+        alert("When 'Best of 3' is selected, you must choose one or no game mode.");
+        return;
+    }
 
     const newMatch = {
-        matchType: document.getElementById('matchType').value,  // Storing the selected match type as a string (e.g., "1v1")
+        matchType,
         postedBy: user.team.name,
         leader: user.team.leader,
         gameModes: selectedGameModes,
         matchFormat: selectedMatchFormat,
         maps: document.getElementById("maps").value.split(",").map(map => map.trim()),
-        cdlRules: cdlRules,
+        cdlRules,
         acceptedBy: null,
-        reportedOutcome: {}, // Track who has reported the outcome
-        result: null // Result will be calculated after both teams report
+        reportedOutcome: {},
+        result: null
     };
 
+    let matches = JSON.parse(localStorage.getItem("matches")) || [];
     matches.push(newMatch);
     localStorage.setItem("matches", JSON.stringify(matches));
 
@@ -324,14 +336,16 @@ function postMatch() {
     renderMatches();
 }
 
-// Function to render the matches
+// Function to render matches
 function renderMatches() {
     const matchList = document.getElementById("match-list");
+    if (!matchList) {
+        console.error("Match list element not found!");
+        return;
+    }
     matchList.innerHTML = "";
 
     let matches = JSON.parse(localStorage.getItem("matches")) || [];
-    const currentUser = localStorage.getItem("currentUser");
-
     matches.forEach((match, index) => {
         const matchItem = document.createElement("div");
         matchItem.classList.add("match-item");
@@ -346,8 +360,15 @@ function renderMatches() {
             <p>Match Type: ${match.matchType}</p>
         `;
 
-        // Team members
+        // If accepted
+        if (match.acceptedBy) {
+            matchItem.innerHTML += `
+                <p><strong>Posted By:</strong> ${match.postedBy} (Leader: ${match.leader})</p>
+                <p><strong>Maps:</strong> ${match.maps.join(", ")}</p>
+            `;
+        }
 
+        // Team members
         if (match.acceptedBy) {
             const postedTeamMembers = getTeamMembers(match.postedBy);
             const acceptedTeamMembers = getTeamMembers(match.acceptedBy);
@@ -372,18 +393,33 @@ function renderMatches() {
 }
 
 // Function to accept a match
-function acceptMatch(matchIndex) {
-    const match = matches[matchIndex];
+function acceptMatch(index) {
+    const currentUser = localStorage.getItem("currentUser");
+    const users = JSON.parse(localStorage.getItem("users")) || [];
     const user = users.find(u => u.codUsername === currentUser);
 
     if (!user || !user.team) {
-        alert("You must belong to a team to accept a match.");
+        alert("You must be in a team to accept matches.");
+        return;
+    }
+
+    let matches = JSON.parse(localStorage.getItem("matches")) || []; // Load the matches from localStorage
+    const match = matches[index];
+
+    if (match.leader === currentUser) {
+        alert("You cannot accept your own match.");
+        return;
+    }
+
+    if (match.acceptedBy) {
+        alert("This match has already been accepted.");
         return;
     }
 
     match.acceptedBy = user.team.name;
     match.acceptedByLeader = user.team.leader;
-    localStorage.setItem("matches", JSON.stringify(matches));
+    localStorage.setItem("matches", JSON.stringify(matches)); // Save the updated matches back to localStorage
+    renderMatches(); // Re-render the matches to reflect the changes
 
     alert("Match accepted!");
     renderMatches();
@@ -391,6 +427,7 @@ function acceptMatch(matchIndex) {
 
 // Function to delete a match
 function deleteMatch(matchIndex) {
+    let matches = JSON.parse(localStorage.getItem("matches")) || [];
     matches.splice(matchIndex, 1);
     localStorage.setItem("matches", JSON.stringify(matches));
 
@@ -398,48 +435,18 @@ function deleteMatch(matchIndex) {
     renderMatches();
 }
 
-// Function to report match outcome
-function reportOutcome(matchIndex, outcome) {
-    const match = matches[matchIndex];
-    const user = users.find(u => u.codUsername === currentUser);
-
-    if (!match.acceptedBy || match.acceptedBy !== user.team.name) {
-        alert("You cannot report the outcome unless you are part of the match.");
-        return;
-    }
-
-    match.reportedOutcome[user.team.name] = outcome;
-
-    // Determine final result if both teams have reported
-    if (match.reportedOutcome[match.postedBy] && match.reportedOutcome[match.acceptedBy]) {
-        const postedTeamOutcome = match.reportedOutcome[match.postedBy];
-        const acceptedTeamOutcome = match.reportedOutcome[match.acceptedBy];
-
-        if (postedTeamOutcome === acceptedTeamOutcome) {
-            match.result = "Draw";
-        } else if (postedTeamOutcome === "Win") {
-            match.result = `${match.postedBy} wins!`;
-        } else {
-            match.result = `${match.acceptedBy} wins!`;
-        }
-
-        localStorage.setItem("matches", JSON.stringify(matches));
-        alert(`Match result: ${match.result}`);
-    }
-}
-
 // Function to get team members by team name
 function getTeamMembers(teamName) {
-    const team = users.find(u => u.team && u.team.name === teamName);
-    return team ? team.team.players.join(", ") : "No team found.";
+    const users = JSON.parse(localStorage.getItem("users")) || []; // Ensure users are loaded from localStorage
+    const team = users.find(user => user.team?.name === teamName); // Find the team by its name
+
+    return team && team.team.players.length > 0
+        ? team.team.players.join(", ") // Return the players in the team
+        : "No team found or no players in the team."; // Handle the case where no players are in the team
 }
 
 // Function to check if the current user is a team leader
 function isTeamLeader() {
-    if (currentUser) {
-        const user = users.find(u => u.codUsername === currentUser);
-        return user && user.team && user.team.leader === currentUser;
-    }
-    return false;
+    const user = users.find(u => u.codUsername === currentUser);
+    return user && user.team && user.team.leader === currentUser;
 }
-
