@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+
+<!-- Link to external JavaScript -->
+<script src="scripts.js"></script>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+    <nav>
+        <ul>
+            <li><a href="users-list.html">Users</a></li>
+            <li><a href="match-finder.html">Match Finder</a></li>
+            <li><a href="team.html">Team</a></li>
+            <li><a href="profile.html" class="active">Profile</a></li>
+            <li><a href="recent-matches.html">Recent Matches</a></li>
+        </ul>
+    </nav>
+</header>
+
+<main>
+    <h1>Profile Page</h1>
+    <div class="container">
+        <form id="profile-form">
+            <label for="bio">Bio:</label>
+            <textarea id="bio" placeholder="Update your bio"></textarea>
+
+            <label for="avatar">Upload Avatar:</label>
+            <input type="file" id="avatar" accept="image/*">
+
+            <button type="submit">Update Profile</button>
+        </form>
+
+        <div id="avatar-preview" class="avatar-preview"></div> <!-- Avatar preview -->
+    </div>
+</main>
+
+<footer>© 2024 My Website</footer>
+
+
+<script>
+    // Initialize the profile page when DOM content is loaded
+    document.addEventListener("DOMContentLoaded", () => {
+        ensureLoggedIn();  // Ensure the user is logged in
+        loadProfile();     // Load profile data
+
+        // Avatar preview logic
+        const avatarInput = document.getElementById("avatar");
+        const avatarPreview = document.getElementById("avatar-preview");
+
+        avatarInput.addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    const imageUrl = e.target.result;
+                    avatarPreview.innerHTML = `
+                        <img src="${imageUrl}" alt="Avatar Preview" style="max-width: 200px; max-height: 200px; border-radius: 50%;">
+                    `;
+                };
+
+                reader.onerror = () => {
+                    alert("There was an error loading the image.");
+                };
+
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Attach form submission event
+        document.getElementById("profile-form").addEventListener("submit", updateProfile);
+    });
+</script>
+</body>
+</html>

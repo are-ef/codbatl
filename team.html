@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+    <nav>
+        <ul>
+            <li><a href="users-list.html">Users</a></li>
+            <li><a href="match-finder.html">Match Finder</a></li>
+            <li><a href="team.html">Team</a></li>
+            <li><a href="profile.html">Profile</a></li>
+            <li><a href="recent-matches.html">Recent Matches</a></li>
+        </ul>
+    </nav>
+</header>
+<h1>Team Page</h1>
+<div class="container">
+    <form id="team-form">
+        <label for="team-name">Team Name:</label>
+        <input type="text" id="team-name" required>
+        <button type="submit">Create Team</button>
+    </form>
+
+    <div id="team-display"></div>
+
+    <section id="team-management" style="display:none;">
+        <p><strong>Leader:</strong> <span id="team-leader"></span></p>
+        <ul id="team-players"></ul>
+        <label for="new-player-username">Add Player:</label>
+        <input type="text" id="new-player-username" placeholder="Enter username" />
+        <button id="add-player-btn">Add Player</button>
+        <button id="edit-team-btn">Edit Team</button> <!-- Edit Team button -->
+    </section>
+</div>
+
+<footer>© 2024 My Website</footer>
+
+<script src="scripts.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const currentPage = window.location.pathname.split("/").pop();
+
+        if (currentPage === "team.html") {
+            renderTeam();
+            document.getElementById("team-form").addEventListener("submit", (e) => {
+                e.preventDefault();
+                createTeam();
+            });
+
+            document.getElementById("add-player-btn").addEventListener("click", addPlayerToTeam);
+            document.getElementById("edit-team-btn").addEventListener("click", editTeam); // Added event listener for edit team
+        }
+
+        if (currentPage === "profile.html") {
+            loadProfile();
+        }
+    });
+</script>
+</body>
+</html>

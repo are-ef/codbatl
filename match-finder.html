@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Finder</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+    <nav>
+        <ul>
+            <li><a href="users-list.html">Users</a></li>
+            <li><a href="match-finder.html">Match Finder</a></li>
+            <li><a href="team.html">Team</a></li>
+            <li><a href="profile.html">Profile</a></li>
+            <li><a href="recent-matches.html">Recent Matches</a></li>
+        </ul>
+    </nav>
+</header>
+
+<h1>Match Finder</h1>
+
+<div class="container">
+    <h2>Create Match</h2>
+    <form id="create-match-form">
+
+        <div>
+            <label for="matchType">Match Type:</label>
+            <select id="matchType">
+                <option value="1v1">1v1</option>
+                <option value="2v2">2v2</option>
+                <option value="3v3">3v3</option>
+                <option value="4v4">4v4</option>
+                <option value="5v5">5v5</option>
+            </select>
+        </div>
+        <div>
+            <label><input type="checkbox" id="search-destroy"> Search & Destroy</label>
+        </div>
+        <div>
+            <label><input type="checkbox" id="hardpoint"> Hardpoint</label>
+        </div>
+        <div>
+            <label><input type="checkbox" id="control"> Control</label>
+        </div>
+        <div>
+            <label><input type="checkbox" id="best-of-1"> Best of 1</label>
+        </div>
+        <div>
+            <label><input type="checkbox" id="best-of-3"> Best of 3</label>
+        </div>
+        <div>
+            <label><input type="checkbox" id="cdl-rules"> CDL rules gameplay</label>
+        </div>
+        <button type="button" onclick="postMatch()">Post Match</button>
+    </form>
+</div>
+
+<h2>Available Matches</h2>
+<div id="match-list">
+    <!-- Matches will be displayed here -->
+</div>
+
+<footer>Â© 2024 My Website</footer>
+
+<script src="scripts.js"></script>
+<script>
+    const Maps = {
+        "Search & Destroy": ['Vault', 'Skyline', 'Rewind', 'Protocol', 'Red Card'],
+        "Hardpoint": ['Vault', 'Skyline', 'Rewind', 'Protocol', 'Red Card'],
+        "Control": ['Vault', 'Skyline', 'Rewind', 'Protocol', 'Red Card']
+    };
+
+    const allGameModes = ["Search & Destroy", "Hardpoint", "Control"];
+
+    document.addEventListener("DOMContentLoaded", () => {
+        renderMatches();
+    });
+
+    function isTeamLeader() {
+        const currentUser = localStorage.getItem("currentUser");
+        const users = JSON.parse(localStorage.getItem("users")) || [];
+        const user = users.find(u => u.codUsername === currentUser);
+        return user && user.team && user.team.leader === currentUser;
+    }
+
+    function postMatch() {
+        if (!isTeamLeader()) {
+            alert("Only team leaders can post matches.");
+            return;
+        }
+
+        const matchType = document.getElementById("matchType").value;
+        const searchDestroy = document.getElementById("search-destroy").checked;
+        const hardpoint = document.getElementById("hardpoint").checked;
+        const control = document.getElementById("control").checked;
+        const bestOf1 = document.getElementById("best-of-1").checked;
+        const bestOf3 = document.getElementById("best-of-3").checked;
+
+        // Validate game mode selection
+        if (!bestOf1 && !bestOf3) {
+            alert("Please select Best of 1 or Best of 3.");
+            return;
+        }
+
+        if (bestOf1 && (searchDestroy + hardpoint + control) !== 1) {
+            alert("When 'Best of 1' is selected, you must choose exactly one game mode.");
+            return;
+        }
+
+        if (!bestOf3 && (searchDestroy + hardpoint + control) !== 1) {
+            alert("When 'Best of 3' is selected, you must choose exactly one game mode or none at all.");
+            return;
+        }
+
+        const currentUser = localStorage.getItem("currentUser");
+        const users = JSON.parse(localStorage.getItem("users")) || [];
+        const user = users.find(u => u.codUsername === currentUser);
+
+        // Allow 'Best of 3' with or without specific game modes
+        const selectedGameModes = [];
+        if (searchDestroy) selectedGameModes.push("Search & Destroy");
+        if (hardpoint) selectedGameModes.push("Hardpoint");
+        if (control) selectedGameModes.push("Control");
+
+        const gameModeCount = bestOf1 ? 1 : 3;
+        const mapsCount = bestOf1 ? 1 : 3;
+
+        if (selectedGameModes.length > 1) {
+            alert("Please select at least one game mode.");
+            return;
+        }
+
+        const newMatch = {
+            matchType: matchType,
+            gameModes: selectedGameModes.length ? selectedGameModes : getRandomGameModes(gameModeCount),
+            matchFormat: bestOf1 ? "Best of 1" : "Best of 3",
+            postedBy: user.team.name,
+            leader: user.team.leader,
+            acceptedBy: null,
+            acceptedByLeader: null,
+            maps: getRandomMaps(mapsCount),
+            cdlRules: document.getElementById("cdl-rules").checked,
+            scores: {
+                postedByScore: null,
+                acceptedByScore: null
+            },
+            result: null,
+            scoreReported: { postedBy: false, acceptedBy: false },
+            reportedOutcome: { postedBy: null, acceptedBy: null },
+            matchResultDisputed: false
+        };
+
+        let matches = JSON.parse(localStorage.getItem("matches")) || [];
+        matches.push(newMatch);
+        localStorage.setItem("matches", JSON.stringify(matches));
+
+        alert("Match posted successfully!");
+        renderMatches();
+    }
+
+    function renderMatches() {
+        const matchList = document.getElementById("match-list");
+        matchList.innerHTML = "";
+
+        let matches = JSON.parse(localStorage.getItem("matches")) || [];
+        const currentUser = localStorage.getItem("currentUser");
+
+        // Filter out matches that have a finalized result (i.e., match.result is not null or undefined)
+        const ongoingMatches = matches.filter(match => match.result === null || match.result === undefined);
+
+        ongoingMatches.forEach((match, index) => {
+            const matchDiv = document.createElement("div");
+            matchDiv.classList.add("match-item");
+
+            // Ensure that match has all the required properties before accessing them
+            const gameModes = match.gameModes || [];
+            const matchFormat = match.matchFormat || "Unknown format";
+            const postedBy = match.postedBy || "Unknown team";
+            const leader = match.leader || "Unknown leader";
+            const maps = match.maps || [];
+            const cdlRules = match.cdlRules ? "Yes" : "No";
+            const acceptedBy = match.acceptedBy || null;
+            const acceptedByLeader = match.acceptedByLeader || null;
+
+            matchDiv.innerHTML = `
+                <p><strong>Match Type:</strong> ${match.matchType}</p>
+                <p><strong>Game Modes:</strong> ${match.gameModes.join(", ")}</p>
+                <p><strong>Match Format:</strong> ${match.matchFormat}</p>
+                <p><strong>CDL Rules:</strong> ${cdlRules}</p>
+            `;
+
+            // If accepted
+            if (match.acceptedBy) {
+                matchDiv.innerHTML += `
+                <p><strong>Posted By:</strong> ${match.postedBy} (Leader: ${match.leader})</p>
+                <p><strong>Maps:</strong> ${match.maps.join(", ")}</p>
+            `;
+            }
+
+            // Team members
+            if (match.acceptedBy) {
+                const postedTeamMembers = getTeamMembers(match.postedBy);
+                const acceptedTeamMembers = getTeamMembers(match.acceptedBy);
+
+                matchDiv.innerHTML += `
+                    <p><strong>Team Members (Posted By):</strong> ${postedTeamMembers}</p>
+                    <p><strong>Team Members (Accepted By):</strong> ${acceptedTeamMembers}</p>
+                    <p><strong>Accepted By:</strong> ${match.acceptedBy} (Leader: ${match.acceptedByLeader})</p>
+                `;
+            }
+
+            if (!match.acceptedBy && match.leader !== currentUser) {
+                matchDiv.innerHTML += `<button onclick="acceptMatch(${index})">Accept Match</button>`;
+            }
+
+            // Add a button to accept the match if not already accepted
+            if (match.leader === currentUser && !match.acceptedBy) {
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "Delete Match";
+                deleteButton.onclick = () => deleteMatch(index);
+                matchDiv.appendChild(deleteButton);
+            }
+
+            // If the match is accepted but the result is not reported, show the report buttons
+            if (match.acceptedBy && !match.result) {
+                if (match.leader === currentUser && match.reportedOutcome.postedBy === null) {
+                    matchDiv.innerHTML += `
+                        <p><strong>Report Outcome:</strong></p>
+                        <button onclick="reportOutcome(${index}, 'postedBy', 'Win')">Win</button>
+                        <button onclick="reportOutcome(${index}, 'postedBy', 'Loss')">Loss</button>
+                    `;
+                }
+                if (match.acceptedByLeader === currentUser && match.reportedOutcome.acceptedBy === null) {
+                    matchDiv.innerHTML += `
+                        <p><strong>Report Outcome:</strong></p>
+                        <button onclick="reportOutcome(${index}, 'acceptedBy', 'Win')">Win</button>
+                        <button onclick="reportOutcome(${index}, 'acceptedBy', 'Loss')">Loss</button>
+                    `;
+                }
+            }
+
+            // If the match result is available, display it
+            if (match.result) {
+                matchDiv.innerHTML += `<p><strong>Result:</strong> ${match.result}</p>`;
+            }
+
+            matchList.appendChild(matchDiv);
+        });
+    }
+
+    function getTeamMembers(teamName) {
+        const users = JSON.parse(localStorage.getItem("users")) || [];
+        const team = users.find(user => user.team?.name === teamName);
+
+        return team && team.team.players.length > 0
+            ? team.team.players.join(", ")
+            : "No team found or no players in the team.";
+    }
+
+    function acceptMatch(index) {
+        const currentUser = localStorage.getItem("currentUser");
+        const users = JSON.parse(localStorage.getItem("users")) || [];
+        const user = users.find(u => u.codUsername === currentUser);
+
+        if (!user || !user.team) {
+            alert("You must be in a team to accept matches.");
+            return;
+        }
+
+        let matches = JSON.parse(localStorage.getItem("matches")) || [];
+        const match = matches[index];
+
+        if (match.leader === currentUser) {
+            alert("You cannot accept your own match.");
+            return;
+        }
+
+        if (match.acceptedBy) {
+            alert("This match has already been accepted.");
+            return;
+        }
+
+        match.acceptedBy = user.team.name;
+        match.acceptedByLeader = user.team.leader;
+
+        localStorage.setItem("matches", JSON.stringify(matches));
+        renderMatches();
+    }
+
+    function deleteMatch(index) {
+        let matches = JSON.parse(localStorage.getItem("matches")) || [];
+        const match = matches[index];
+
+        if (match.acceptedBy) {
+            alert("This match has already been accepted.");
+            return;
+        }
+
+        matches.splice(index, 1);
+        localStorage.setItem("matches", JSON.stringify(matches));
+        renderMatches();
+    }
+
+    function reportOutcome(index, teamType, outcome) {
+        let matches = JSON.parse(localStorage.getItem("matches")) || [];
+        const match = matches[index];
+
+        if (!match.acceptedBy) {
+            alert("The match has not been accepted yet.");
+            return;
+        }
+
+        if (match.reportedOutcome[teamType]) {
+            alert("You have already reported your outcome.");
+            return;
+        }
+
+        match.reportedOutcome[teamType] = outcome;
+
+        // Both teams must report opposite results to finalize the outcome
+        if (match.reportedOutcome.postedBy && match.reportedOutcome.acceptedBy) {
+            if (match.reportedOutcome.postedBy !== match.reportedOutcome.acceptedBy) {
+                // Finalize the result, set the match result for the winner
+                match.result = match.reportedOutcome.postedBy === "Win" ? match.postedBy : match.acceptedBy;
+            } else {
+                alert("The reported outcomes must be different. One team reports a win, the other a loss.");
+                return;
+            }
+        }
+
+        localStorage.setItem("matches", JSON.stringify(matches));
+        renderMatches();
+    }
+
+    function getRandomMaps(count) {
+        const allMaps = ["Vault", "Skyline", "Rewind", "Protocol", "Red Card"];
+        return allMaps.sort(() => 0.5 - Math.random()).slice(0, count);
+    }
+
+    function getRandomGameModes(count) {
+        return allGameModes.sort(() => 0.5 - Math.random()).slice(0, count);
+    }
+</script>
+</body>
+</html>

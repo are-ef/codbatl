@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users List</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+    <nav>
+        <ul>
+            <li><a href="users-list.html">Users</a></li>
+            <li><a href="match-finder.html">Match Finder</a></li>
+            <li><a href="team.html">Team</a></li>
+            <li><a href="profile.html">Profile</a></li>
+            <li><a href="recent-matches.html">Recent Matches</a></li>
+        </ul>
+    </nav>
+</header>
+
+<h1>Users List</h1>
+<div class="container">
+    <div id="user-list"></div> <!-- Will display users here -->
+    <div id="user-profile" style="display: none;">
+        <h2>User Profile</h2>
+        <img id="avatar-preview" src="" alt="Avatar" style="max-width: 200px; height: auto;">
+        <p id="user-bio"></p>
+    </div>
+</div>
+
+<footer>© 2024 My Website</footer>
+
+<script src="scripts.js"></script>
+<script>
+    // Fetch users from localStorage and display them
+    function loadUsers() {
+        const users = JSON.parse(localStorage.getItem("users")) || [];
+        const userList = document.getElementById("user-list");
+
+        users.forEach(user => {
+            const userDiv = document.createElement("div");
+            userDiv.classList.add("user-item");
+            userDiv.innerHTML = `<button onclick="showUserProfile('${user.codUsername}')">${user.codUsername}</button>`;
+            userList.appendChild(userDiv);
+        });
+    }
+
+    // Display a user's profile (bio and avatar) when their username is clicked
+    function showUserProfile(username) {
+        const users = JSON.parse(localStorage.getItem("users")) || [];
+        const user = users.find(u => u.codUsername === username);
+
+        if (user) {
+            document.getElementById("user-profile").style.display = "block";
+            document.getElementById("avatar-preview").src = user.avatar || ""; // Set avatar (if any)
+            document.getElementById("user-bio").textContent = user.bio || "No bio available.";
+        }
+    }
+
+    // Load users when the page loads
+    document.addEventListener("DOMContentLoaded", () => {
+        loadUsers();
+    });
+</script>
+</body>
+</html>

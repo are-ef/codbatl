@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+    <nav>
+        <ul>
+        </ul>
+    </nav>
+</header>
+<h1>Sign Up</h1>
+<div class="container">
+    <form id="sign-up-form">
+        <label for="new-username">Username:</label>
+        <input type="text" id="new-username" required>
+        <label for="new-password">Password:</label>
+        <input type="password" id="new-password" required>
+        <label for="confirm-password">Confirm Password:</label>
+        <input type="password" id="confirm-password" required>
+        <button type="submit">Sign Up</button>
+    </form>
+</div>
+<footer>© 2024 My Website</footer>
+
+<script src="scripts.js"></script>
+<script>
+    document.getElementById("sign-up-form").addEventListener("submit", handleSignUp);
+</script>
+</body>
+</html>
